@@ -73,7 +73,7 @@ def listExistingDecompressedLogs(initial_creation_dir, vo, entry):
           m = re.search(r"(job\.*\.*.*)\.(Master|Startd|Starter)\.log", item)
           if m != None:
               if m.group(1) != None:
-                  existing_item = m.group(1) + ".err"
+                  existing_item = m.group(1)
                   if not existing_item in existing_list:
                       existing_list[existing_item] = []
                   existing_list[existing_item].append(m.group(2))
