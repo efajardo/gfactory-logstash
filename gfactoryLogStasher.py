@@ -3,7 +3,7 @@
 import re
 import sys
 import os
-
+import json
 gfactory_dir = "/var/log/gwms-factory/client"
 
 our_dir = "/var/log/gwms-factory-condorlogs"
@@ -79,7 +79,7 @@ def listExistingDecompressedLogs(initial_creation_dir, vo, entry):
                   existing_list[existing_item].append(m.group(2))
      return existing_list
               
-def createDecompressedLogs(initialdir, initial_creation_dir, user, entry, jobid, logType = 'Master'):
+def createDecompressedLogs(initialdir, initial_creation_dir, user, entry, jobid, meta_information = {}, logType = 'Master'):
     stderrFile = os.path.join(initialdir, user, 'glidein_gfactory_instance', entry, jobid)
     destinationFile = os.path.join(initial_creation_dir, user, entry,jobid) + "." + logType + ".log"
     condor_log_id = 'Master'
@@ -88,13 +88,34 @@ def createDecompressedLogs(initialdir, initial_creation_dir, user, entry, jobid,
         return
     condor_log_id = condor_log_id + "Log"
     log = gWftLogParser.get_CondorLog(stderrFile, condor_log_id)
-    file = open(destinationFile,"w")
-    file.write(log)
-    file.close()
-        
+    outputfile = open(destinationFile,"w")
+    for line in log.split("\n"):
+        if len(line) > 0:
+            meta_information['message'] = line
+            outputfile.write(json.dumps(meta_information) + '\n')
+    outputfile.close()
 
+def removeQuotesAndSpaces(mystring):
+    return mystring.replace(' ', '').replace("'", '')        
+
+def obtainMetaInformationGlidein(stdOutFile):
+    N = 20
+    meta_information = {}
+    with open(stdOutFile, "r") as myfile:
+        for i in range(N):
+            line = myfile.next()
+            line = line.rstrip()
+            line = line.split('=')
+            if 'glidein_factory' in line[0]:
+                meta_information['glidein_factory'] = removeQuotesAndSpaces(line[1])
+            elif 'glidein_entry' in line[0]:
+                meta_information['glidein_entry'] = removeQuotesAndSpaces(line[1])
+            elif 'glidein_credential_id' in line[0]:
+                meta_information['glidein_credential_id'] = removeQuotesAndSpaces(line[1])
+            elif 'client_group'in line[0]:
+                meta_information['client_group'] = removeQuotesAndSpaces(line[1])
+    return meta_information
     
-print "Hello World"
 vo_list = determineListofVO(gfactory_dir)
 createVODirs(our_dir, vo_list)
 for vo in vo_list:
@@ -109,8 +130,11 @@ for vo in vo_list:
         print "Existing decompressed list size %d" % len(existent_decompressed_list)
         for file_err in existent_files_list:
             if file_err not in  existent_decompressed_list:
+                stdOutFile = os.path.join(gfactory_dir, vo, 'glidein_gfactory_instance', entry, file_err)
+                stdOutFile = stdOutFile[:-4] + ".out"
+                meta_information = obtainMetaInformationGlidein(stdOutFile)
                 for logType in logTypes:
-                    createDecompressedLogs(gfactory_dir, our_dir, vo, entry, file_err, logType)
+                    createDecompressedLogs(gfactory_dir, our_dir, vo, entry, file_err, meta_information, logType)
 
                 
             
