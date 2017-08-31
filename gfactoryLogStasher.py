@@ -119,15 +119,15 @@ def obtainMetaInformationGlidein(stdOutFile):
 vo_list = determineListofVO(gfactory_dir)
 createVODirs(our_dir, vo_list)
 for vo in vo_list:
-    print "Entries exist for vo: %s" % vo
+    #print "Entries exist for vo: %s" % vo
     entry_list = entriesPerVO(gfactory_dir, vo)
-    print "Creating Entry dirs"
+    #print "Creating Entry dirs"
     createEntriesDirs(our_dir, vo, entry_list)
     for entry in entry_list:
         existent_files_list = determineExistentStandardErrorLogs(gfactory_dir, vo, entry)
-        print "Number of current .err pilot files for entry:%s is %d" % (entry, len(existent_files_list))
+        #print "Number of current .err pilot files for entry:%s is %d" % (entry, len(existent_files_list))
         existent_decompressed_list = listExistingDecompressedLogs(our_dir, vo, entry)
-        print "Existing decompressed list size %d" % len(existent_decompressed_list)
+        #print "Existing decompressed list size %d" % len(existent_decompressed_list)
         for file_err in existent_files_list:
             if file_err not in  existent_decompressed_list:
                 stdOutFile = os.path.join(gfactory_dir, vo, 'glidein_gfactory_instance', entry, file_err)
