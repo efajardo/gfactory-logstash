@@ -114,6 +114,8 @@ def obtainMetaInformationGlidein(stdOutFile):
                 meta_information['glidein_credential_id'] = removeQuotesAndSpaces(line[1])
             elif 'client_group'in line[0]:
                 meta_information['client_group'] = removeQuotesAndSpaces(line[1])
+            elif 'client_name' in line[0]:
+                meta_information['client_name'] = removeQuotesAndSpaces(line[1])
     return meta_information
     
 vo_list = determineListofVO(gfactory_dir)
