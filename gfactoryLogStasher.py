@@ -103,7 +103,11 @@ def obtainMetaInformationGlidein(stdOutFile):
     meta_information = {}
     with open(stdOutFile, "r") as myfile:
         for i in range(N):
-            line = myfile.next()
+            try:
+                line = myfile.next()
+            except StopIteration:
+                print "Empty .out file: %s" % stdOutFile
+                return meta_information
             line = line.rstrip()
             line = line.split('=')
             if 'glidein_factory' in line[0]:
