@@ -123,7 +123,7 @@ def obtainMetaInformationGlidein(stdOutFile):
             elif 'Running on' in line[0]:
                 match = re.search(r'Running on ([\w.-]+)', line[0])
                 if match:
-                    meta_information['hostname'] = match.group(1)
+                    meta_information['WorkerNode'] = match.group(1)
     return meta_information
     
 vo_list = determineListofVO(gfactory_dir)
