@@ -126,6 +126,20 @@ def obtainMetaInformationGlidein(stdOutFile):
                     meta_information['WorkerNode'] = match.group(1)
     return meta_information
     
+
+def removeFile(destFile):
+     if os.path.isfile(destFile):
+         try:
+             os.remove(destFile)
+         except OSError:
+             print "Could not remove the file: %s" % destFile
+         
+
+def removeCondorDecompressedFile(initial_creation_dir, user, entry, jobid, logType = 'Master'):
+    destinationFile = os.path.join(initial_creation_dir, user, entry,jobid) + "." + logType + ".log"
+    removeFile(destinationFile)
+
+
 vo_list = determineListofVO(gfactory_dir)
 createVODirs(our_dir, vo_list)
 for vo in vo_list:
@@ -145,6 +159,11 @@ for vo in vo_list:
                 meta_information = obtainMetaInformationGlidein(stdOutFile)
                 for logType in logTypes:
                     createDecompressedLogs(gfactory_dir, our_dir, vo, entry, file_err, meta_information, logType)
+        for file_condor in existent_decompressed_list:
+            if file_condor not in existent_files_list:
+                for logType in logTypes:
+                    removeCondorDecompressedFile(our_dir, vo, entry, file_err, logType)
+
 
                 
             
