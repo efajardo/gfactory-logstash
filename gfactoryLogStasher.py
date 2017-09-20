@@ -87,7 +87,11 @@ def createDecompressedLogs(initialdir, initial_creation_dir, user, entry, jobid,
         print "The LogType is not: Master, Starter or Startd, bailing"
         return
     condor_log_id = condor_log_id + "Log"
-    log = gWftLogParser.get_CondorLog(stderrFile, condor_log_id)
+    try:
+        log = gWftLogParser.get_CondorLog(stderrFile, condor_log_id)
+    except Exception as e:
+        print "Problem creating condor log: %s out of %s" % (logType, stderrFile)
+        return
     outputfile = open(destinationFile,"w")
     for line in log.split("\n"):
         if len(line) > 0:
@@ -156,7 +160,11 @@ for vo in vo_list:
             if file_err not in  existent_decompressed_list:
                 stdOutFile = os.path.join(gfactory_dir, vo, 'glidein_gfactory_instance', entry, file_err)
                 stdOutFile = stdOutFile[:-4] + ".out"
-                meta_information = obtainMetaInformationGlidein(stdOutFile)
+                try:
+                    meta_information = obtainMetaInformationGlidein(stdOutFile)
+                except IOError as e:
+                    print "Problem obtaining meta information from file: %s" % stdOutFile
+                    continue
                 for logType in logTypes:
                     createDecompressedLogs(gfactory_dir, our_dir, vo, entry, file_err, meta_information, logType)
         for file_condor in existent_decompressed_list:
