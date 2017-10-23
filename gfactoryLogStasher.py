@@ -82,7 +82,7 @@ def listExistingDecompressedLogs(initial_creation_dir, vo, entry):
 def createDecompressedLogs(initialdir, initial_creation_dir, user, entry, jobid, meta_information = {}, logType = 'Master'):
     stderrFile = os.path.join(initialdir, user, 'glidein_gfactory_instance', entry, jobid)
     destinationFile = os.path.join(initial_creation_dir, user, entry,jobid) + "." + logType + ".log"
-    condor_log_id = 'Master'
+    condor_log_id = logType
     if logType not in logTypes:
         print "The LogType is not: Master, Starter or Startd, bailing"
         return
@@ -170,7 +170,7 @@ for vo in vo_list:
         for file_condor in existent_decompressed_list:
             if file_condor not in existent_files_list:
                 for logType in logTypes:
-                    removeCondorDecompressedFile(our_dir, vo, entry, file_err, logType)
+                    removeCondorDecompressedFile(our_dir, vo, entry, file_condor, logType)
 
 
                 
