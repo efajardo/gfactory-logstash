@@ -11,6 +11,9 @@ our_dir = "/var/log/gwms-factory-condorlogs"
 
 logTypes = ['Startd', 'Master', 'Starter']
 
+lockdir = "/var/lock/gfactoryLogStasher"
+
+lockfile = os.path.join(lockdir, "gfactoryLogStasheer.pid")
 
 ###### From glideinwms ######
 import sys
@@ -154,6 +157,34 @@ def removeCondorDecompressedFile(initial_creation_dir, user, entry, jobid, logTy
     removeFile(destinationFile)
 
 
+def write_pidfile_or_die(path_to_pidfile):
+    if os.path.exists(path_to_pidfile):
+        pid = int(open(path_to_pidfile).read())
+        if pid_is_running(pid):
+            print("Sorry, found a pidfile! Process {0} is still running.".format(pid))
+            raise SystemExit
+        else:
+            os.remove(path_to_pidfile)
+    else:
+        open(path_to_pidfile, 'w').write(str(os.getpid()))
+
+def pid_is_running(pid):
+    try:
+        os.kill(pid, 0)
+        # check the existence of a unix pid
+    except OSError:
+        return False
+    else:
+        return True
+    
+
+# Creating lockfile so no more than one instance is running
+
+createDir(lockdir)
+write_pidfile_or_die(lockfile)
+
+# Actual work
+
 vo_list = determineListofVO(gfactory_dir)
 createVODirs(our_dir, vo_list)
 for vo in vo_list:
@@ -182,6 +213,9 @@ for vo in vo_list:
                 for logType in logTypes:
                     removeCondorDecompressedFile(our_dir, vo, entry, file_condor, logType)
 
+# Remove the lockfile once all is done
+
+removeFile(lockfile)
 
                 
             
