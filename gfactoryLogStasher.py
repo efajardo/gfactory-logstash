@@ -4,6 +4,7 @@ import re
 import sys
 import os
 import json
+import time
 gfactory_dir = "/var/log/gwms-factory/client"
 
 our_dir = "/var/log/gwms-factory-condorlogs"
@@ -58,11 +59,20 @@ def determineExistentStandardErrorLogs(initialdir, user, entry):
     directory = os.path.join(initialdir, user, 'glidein_gfactory_instance', entry)
     my_list = os.listdir(directory)
     file_list = []
+    timenow =  int(time.time())
     for item in my_list:
         file_path = os.path.join(directory, item)
         if os.path.isfile(file_path) and re.match(r"\Ajob.*.*.err", item):
             if os.path.getsize(file_path) > 0:
                 file_list.append(item)
+            else:
+                continue
+            modifitactionTime = os.path.getmtime(file_path)
+            timeSincemod = (timenow-modifitactionTime)/(3600)
+            if timeSincemod < 6:
+                file_list.append(item)
+            else:
+                continue
     return file_list
 
 def listExistingDecompressedLogs(initial_creation_dir, vo, entry):
