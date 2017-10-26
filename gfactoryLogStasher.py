@@ -69,7 +69,7 @@ def determineExistentStandardErrorLogs(initialdir, user, entry):
             if os.path.getsize(file_path) > 0:
                 modifitactionTime = os.path.getmtime(file_path)
                 timeSincemod = (timenow-modifitactionTime)/(3600)
-                if timeSincemod < 6:
+                if timeSincemod < 1:
                     file_list.append(item)
                 else:
                     continue
@@ -164,13 +164,10 @@ def write_pidfile_or_die(path_to_pidfile):
             raise SystemExit
         else:
             os.remove(path_to_pidfile)
-    else:
-        open(path_to_pidfile, 'w').write(str(os.getpid()))
 
 def pid_is_running(pid):
     try:
         os.kill(pid, 0)
-        # check the existence of a unix pid
     except OSError:
         return False
     else:
@@ -181,7 +178,7 @@ def pid_is_running(pid):
 
 createDir(lockdir)
 write_pidfile_or_die(lockfile)
-
+open(lockfile, 'w').write(str(os.getpid()))
 # Actual work
 
 vo_list = determineListofVO(gfactory_dir)
@@ -196,6 +193,12 @@ for vo in vo_list:
         #print "Number of current .err pilot files for entry:%s is %d" % (entry, len(existent_files_list))
         existent_decompressed_list = listExistingDecompressedLogs(our_dir, vo, entry)
         #print "Existing decompressed list size %d" % len(existent_decompressed_list)
+        #print existent_files_list
+        #print existent_decompressed_list
+        for file_condor in existent_decompressed_list:
+            if file_condor not in existent_files_list:
+                for logType in logTypes:
+                    removeCondorDecompressedFile(our_dir, vo, entry, file_condor, logType)
         for file_err in existent_files_list:
             if file_err not in  existent_decompressed_list:
                 stdOutFile = os.path.join(gfactory_dir, vo, 'glidein_gfactory_instance', entry, file_err)
@@ -207,13 +210,8 @@ for vo in vo_list:
                     continue
                 for logType in logTypes:
                     createDecompressedLogs(gfactory_dir, our_dir, vo, entry, file_err, meta_information, logType)
-        for file_condor in existent_decompressed_list:
-            if file_condor not in existent_files_list:
-                for logType in logTypes:
-                    removeCondorDecompressedFile(our_dir, vo, entry, file_condor, logType)
 
 # Remove the lockfile once all is done
-
 removeFile(lockfile)
 
                 
