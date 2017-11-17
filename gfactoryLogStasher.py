@@ -15,6 +15,10 @@ lockdir = "/var/lock/gfactoryLogStasher"
 
 lockfile = os.path.join(lockdir, "gfactoryLogStasheer.pid")
 
+condorMessageUnparser = re.compile("(\d+/\d+/\d+ \d+:\d+:\d+)()(.*)")
+
+condorStdErrParsers = re.compile("(GLIDEIN|CONDORG)_(.*)( )(.*)")
+
 ###### From glideinwms ######
 import sys
 STARTUP_DIR=sys.path[0]
@@ -107,14 +111,28 @@ def createDecompressedLogs(initialdir, initial_creation_dir, user, entry, jobid,
     outputfile = open(destinationFile,"w")
     for line in log.split("\n"):
         if len(line) > 0:
-            meta_information['message'] = line
+            (LogDate, Realmessage) = unParseCondorLine(line)
+            meta_information['logDate'] = LogDate
+            meta_information['message'] = Realmessage
+            meta_information['logType'] = logType
             outputfile.write(json.dumps(meta_information) + '\n')
     outputfile.close()
+
+
+def unParseCondorLine(message):
+    m = condorMessageUnparser.match(message)
+    if m != None:
+        date = m.group(1)
+        realMessage = m.group(3)
+        return (date, realMessage)
+    else:
+        return ('', message)
+    
 
 def removeQuotesAndSpaces(mystring):
     return mystring.replace(' ', '').replace("'", '')        
 
-def obtainMetaInformationGlidein(stdOutFile):
+def obtainMetaInformationGlidein(stdOutFile, stdErrFile):
     N = 35
     meta_information = {}
     with open(stdOutFile, "r") as myfile:
@@ -140,6 +158,24 @@ def obtainMetaInformationGlidein(stdOutFile):
                 match = re.search(r'Running on ([\w.-]+)', line[0])
                 if match:
                     meta_information['WorkerNode'] = match.group(1)
+    myfile.close()
+
+    with open(stdErrFile, "r") as stdErrFile:
+        for line in stdErrFile:
+            m = condorStdErrParsers.match(line)
+            if m != None:
+                key = m.group(2)
+                value = m.group(4)
+                if 'Site' in key and "PREEMPT" not in key:
+                    meta_information[key] = value
+                elif 'key' == 'ResourceName':
+                    meta_information[key] = value
+                elif m.group(1) == 'CONDORG':
+                    meta_information[key] = value
+            else:
+                continue
+    stdErrFile.close()
+                
     return meta_information
     
 
@@ -203,8 +239,9 @@ for vo in vo_list:
             if file_err not in  existent_decompressed_list:
                 stdOutFile = os.path.join(gfactory_dir, vo, 'glidein_gfactory_instance', entry, file_err)
                 stdOutFile = stdOutFile[:-4] + ".out"
+                stdErrFile = stdOutFile[:-4] + ".err"
                 try:
-                    meta_information = obtainMetaInformationGlidein(stdOutFile)
+                    meta_information = obtainMetaInformationGlidein(stdOutFile, stdErrFile)
                 except IOError as e:
                     print "Problem obtaining meta information from file: %s" % stdOutFile
                     continue
