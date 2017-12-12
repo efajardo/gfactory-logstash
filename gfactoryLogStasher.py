@@ -123,17 +123,29 @@ def createdDecomprresedStdOutLog(stdOutContents, initial_creation_dir, user, ent
     StdOutputfile = open(StdOutdestinationFile,"w")
     performancefile = os.path.join(initial_creation_dir, user, entry,jobid) + "." + "Performance" + ".log"
     performanceFileHandle = open(performancefile,"w")
-    
+    meta_information['logType'] = logType
     currentHandle = StdOutputfile
     for line in stdOutContents:
         if "XML description of glidein activity" in line:
+            meta_information['logType'] = "Performance"
             currentHandle = performanceFileHandle
         if len(line) > 0:
             meta_information['message'] = line
             currentHandle.write(json.dumps(meta_information) + '\n')
     StdOutputfile.close()
     performanceFileHandle.close()
-    
+
+def createdDecomprresedStdErrLog(stdErrContents, initial_creation_dir, user, entry, jobid, meta_information = {}, logType = 'err'):
+    StdErrdestinationFile = os.path.join(initial_creation_dir, user, entry,jobid) + "." + logType + ".log"
+    StdErrfileHandle = open(StdErrdestinationFile,"w")
+    meta_information['logType'] = logType
+    for line in stdErrContents:
+        if "gzip" in line:
+            break
+        if len(line) > 0:
+            meta_information['message'] = line
+            StdErrfileHandle.write(json.dumps(meta_information) + '\n')
+    StdErrfileHandle.close()
 
 def unParseCondorLine(message):
     m = condorMessageUnparser.match(message)
@@ -263,6 +275,7 @@ for vo in vo_list:
                     continue
                 # Extracting stdOut Logs
                 createdDecomprresedStdOutLog(stdOutContents,our_dir, vo, entry, file_err, meta_information, "out")
+                createdDecomprresedStdErrLog(stdErrContents,our_dir, vo, entry, file_err, meta_information, "err")
                 # Creating stdErr Logs
                 for logType in logTypes:
                     createDecompressedLogs(gfactory_dir, our_dir, vo, entry, file_err, meta_information, logType)
