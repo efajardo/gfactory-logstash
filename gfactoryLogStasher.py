@@ -86,7 +86,7 @@ def listExistingDecompressedLogs(initial_creation_dir, vo, entry):
      existing_list = {}
      my_list = os.listdir(directory)
      for item in my_list:
-          m = re.search(r"(job\.*\.*.*)\.(Master|Startd|Starter)\.log", item)
+          m = re.search(r"(job\.*\.*.*)\.(err|out|Performance|Master|Startd|Starter)\.log", item)
           if m != None:
               if m.group(1) != None:
                   existing_item = m.group(1)
@@ -118,6 +118,22 @@ def createDecompressedLogs(initialdir, initial_creation_dir, user, entry, jobid,
             outputfile.write(json.dumps(meta_information) + '\n')
     outputfile.close()
 
+def createdDecomprresedStdOutLog(stdOutContents, initial_creation_dir, user, entry, jobid, meta_information = {}, logType = 'out'):
+    StdOutdestinationFile = os.path.join(initial_creation_dir, user, entry,jobid) + "." + logType + ".log"
+    StdOutputfile = open(StdOutdestinationFile,"w")
+    performancefile = os.path.join(initial_creation_dir, user, entry,jobid) + "." + "Performance" + ".log"
+    performanceFileHandle = open(performancefile,"w")
+    
+    currentHandle = StdOutputfile
+    for line in stdOutContents:
+        if "XML description of glidein activity" in line:
+            currentHandle = performanceFileHandle
+        if len(line) > 0:
+            meta_information['message'] = line
+            currentHandle.write(json.dumps(meta_information) + '\n')
+    StdOutputfile.close()
+    performanceFileHandle.close()
+    
 
 def unParseCondorLine(message):
     m = condorMessageUnparser.match(message)
@@ -245,6 +261,9 @@ for vo in vo_list:
                 except IOError as e:
                     print "Problem obtaining meta information from file: %s" % stdOutFile
                     continue
+                # Extracting stdOut Logs
+                createdDecomprresedStdOutLog(stdOutContents,our_dir, vo, entry, file_err, meta_information, "out")
+                # Creating stdErr Logs
                 for logType in logTypes:
                     createDecompressedLogs(gfactory_dir, our_dir, vo, entry, file_err, meta_information, logType)
 
