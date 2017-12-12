@@ -73,7 +73,7 @@ def determineExistentStandardErrorLogs(initialdir, user, entry):
             if os.path.getsize(file_path) > 0:
                 modifitactionTime = os.path.getmtime(file_path)
                 timeSincemod = (timenow-modifitactionTime)/(3600)
-                if timeSincemod < 1:
+                if timeSincemod < 4:
                     file_list.append(item)
                 else:
                     continue
@@ -132,52 +132,50 @@ def unParseCondorLine(message):
 def removeQuotesAndSpaces(mystring):
     return mystring.replace(' ', '').replace("'", '')        
 
-def obtainMetaInformationGlidein(stdOutFile, stdErrFile):
+def obtainMetaInformationGlidein(stdOutContents, stdErrContents):
     N = 35
     meta_information = {}
-    with open(stdOutFile, "r") as myfile:
-        for i in range(N):
-            try:
-                line = myfile.next()
-            except StopIteration:
-                print "Empty .out file: %s" % stdOutFile
-                return meta_information
-            line = line.rstrip()
-            line = line.split('=')
-            if 'glidein_factory' in line[0]:
-                meta_information['glidein_factory'] = removeQuotesAndSpaces(line[1])
-            elif 'glidein_entry' in line[0]:
-                meta_information['glidein_entry'] = removeQuotesAndSpaces(line[1])
-            elif 'glidein_credential_id' in line[0]:
-                meta_information['glidein_credential_id'] = removeQuotesAndSpaces(line[1])
-            elif 'client_group'in line[0]:
-                meta_information['client_group'] = removeQuotesAndSpaces(line[1])
-            elif 'client_name' in line[0]:
-                meta_information['client_name'] = removeQuotesAndSpaces(line[1])
-            elif 'Running on' in line[0]:
-                match = re.search(r'Running on ([\w.-]+)', line[0])
-                if match:
-                    meta_information['WorkerNode'] = match.group(1)
-    myfile.close()
+    for line in stdOutContents:
+        line = line.rstrip()
+        line = line.split('=')
+        if len(line) < 2:
+            continue
+        if 'glidein_factory' in line[0]:
+            meta_information['glidein_factory'] = removeQuotesAndSpaces(line[1])
+        elif 'glidein_entry' in line[0]:
+            meta_information['glidein_entry'] = removeQuotesAndSpaces(line[1])
+        elif 'glidein_credential_id' in line[0]:
+            meta_information['glidein_credential_id'] = removeQuotesAndSpaces(line[1])
+        elif 'client_group'in line[0]:
+            meta_information['client_group'] = removeQuotesAndSpaces(line[1])
+        elif 'client_name' in line[0]:
+            meta_information['client_name'] = removeQuotesAndSpaces(line[1])
+        elif 'Running on' in line[0]:
+            match = re.search(r'Running on ([\w.-]+)', line[0])
+            if match:
+                meta_information['WorkerNode'] = match.group(1)
 
-    with open(stdErrFile, "r") as stdErrFile:
-        for line in stdErrFile:
-            m = condorStdErrParsers.match(line)
-            if m != None:
-                key = m.group(2)
-                value = m.group(4)
-                if 'Site' in key and "PREEMPT" not in key:
-                    meta_information[key] = value
-                elif 'key' == 'ResourceName':
-                    meta_information[key] = value
-                elif m.group(1) == 'CONDORG':
-                    meta_information[key] = value
-            else:
-                continue
-    stdErrFile.close()
-                
+    for line in stdErrContents:
+         m = condorStdErrParsers.match(line)
+         if m != None:
+             key = m.group(2)
+             value = m.group(4)
+             if 'Site' in key and "PREEMPT" not in key:
+                 meta_information[key] = value
+             elif 'key' == 'ResourceName':
+                 meta_information[key] = value
+             elif m.group(1) == 'CONDORG':
+                 meta_information[key] = value
+         else:
+             continue
     return meta_information
     
+# Return the contents of a file line by line
+def readContentsFile(filepath):
+    lines = []
+    with open(filepath) as f:
+        lines = [line.rstrip('\n') for line in f]
+    return lines
 
 def removeFile(destFile):
      if os.path.isfile(destFile):
@@ -240,8 +238,10 @@ for vo in vo_list:
                 stdOutFile = os.path.join(gfactory_dir, vo, 'glidein_gfactory_instance', entry, file_err)
                 stdOutFile = stdOutFile[:-4] + ".out"
                 stdErrFile = stdOutFile[:-4] + ".err"
+                stdOutContents = readContentsFile(stdOutFile)
+                stdErrContents = readContentsFile(stdErrFile)
                 try:
-                    meta_information = obtainMetaInformationGlidein(stdOutFile, stdErrFile)
+                    meta_information = obtainMetaInformationGlidein(stdOutContents, stdErrContents)
                 except IOError as e:
                     print "Problem obtaining meta information from file: %s" % stdOutFile
                     continue
