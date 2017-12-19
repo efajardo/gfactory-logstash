@@ -73,7 +73,7 @@ def determineExistentStandardErrorLogs(initialdir, user, entry):
             if os.path.getsize(file_path) > 0:
                 modifitactionTime = os.path.getmtime(file_path)
                 timeSincemod = (timenow-modifitactionTime)/(3600)
-                if timeSincemod < 4:
+                if timeSincemod < 1:
                     file_list.append(item)
                 else:
                     continue
@@ -261,6 +261,9 @@ for vo in vo_list:
             if file_condor not in existent_files_list:
                 for logType in logTypes:
                     removeCondorDecompressedFile(our_dir, vo, entry, file_condor, logType)
+                removeCondorDecompressedFile(our_dir, vo, entry, file_condor, "out")
+                removeCondorDecompressedFile(our_dir, vo, entry, file_condor, "err")
+                removeCondorDecompressedFile(our_dir, vo, entry, file_condor, "Performance")
         for file_err in existent_files_list:
             if file_err not in  existent_decompressed_list:
                 stdOutFile = os.path.join(gfactory_dir, vo, 'glidein_gfactory_instance', entry, file_err)
