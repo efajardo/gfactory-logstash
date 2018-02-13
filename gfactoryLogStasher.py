@@ -131,7 +131,11 @@ def createdDecomprresedStdOutLog(stdOutContents, initial_creation_dir, user, ent
             currentHandle = performanceFileHandle
         if len(line) > 0:
             meta_information['message'] = line
-            currentHandle.write(json.dumps(meta_information) + '\n')
+            try:
+                currentHandle.write(json.dumps(meta_information) + '\n')
+            except UnicodeDecodeError:
+                meta_information['message'] = "Message line corrupted replacing it by this line"
+                currentHandle.write(json.dumps(meta_information) + '\n')
     StdOutputfile.close()
     performanceFileHandle.close()
 
